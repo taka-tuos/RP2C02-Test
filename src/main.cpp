@@ -62,7 +62,7 @@ void setup()
 	delay(100);
 
 	write_ppu(0x2000, 0x80);
-	write_ppu(0x2001, 0x1e);
+	write_ppu(0x2001, 0x00);
 
 	//while (digitalRead(16) == HIGH);
 
@@ -70,10 +70,10 @@ void setup()
 	for(int i = 0; i < 256; i++) write_ppu(0x2004, 0x00);
 
 	byte palette[16] = {
-		0x30, 0x0f, 0x30, 0x30,
-		0x30, 0x0f, 0x30, 0x30,
-		0x30, 0x0f, 0x30, 0x30,
-		0x30, 0x0f, 0x30, 0x30,
+		0x0f, 0x00, 0x10, 0x30,
+		0x0f, 0x00, 0x10, 0x30,
+		0x0f, 0x00, 0x10, 0x30,
+		0x0f, 0x00, 0x10, 0x30,
 	};
 
 	write_ppu(0x2006, 0x3f); 
@@ -88,7 +88,11 @@ void setup()
 
 	write_ppu(0x2006, 0x00); 
 	write_ppu(0x2006, 0x00);
-	for(int i = 0; i < 0x100; i++) write_ppu(0x2007, 0x55);
+	for(int i = 0; i < 0x3000; i++) write_ppu(0x2007, 0x55);
+
+	delay(100);
+
+	write_ppu(0x2001, 0x1e);
 }
 
 int vcnt = 0;
@@ -99,7 +103,7 @@ void loop()
 {
 	while (gpio_get(16) == HIGH);
 	//write_vram(0x2000, rand());
-	write_ppu(0x2006, 0x20); 
+	write_ppu(0x2006, 0x10); 
 	write_ppu(0x2006, 0);
 	for(int i = 0; i < 0x10; i++) {
 		write_ppu(0x2007, rand());
@@ -132,20 +136,18 @@ void write_ppu(word addr, byte data)
 	gpio_put(GPIO_nCS, LOW);
 
 	asm volatile(
-		"mov  r0, #17\n"    		// 1 cycle
-		"loop1: subs  r0, r0, #1\n"	// 1 cycle
-		"bne   loop1\n"          	// 2 cycles if loop taken, 1 if not
-	);
+		" nop\n nop\n nop\n nop\n"  // 4 cycle
+		" nop\n nop\n nop\n"  		// 3 cycle
+	); // 7 * 8 = 56ns
 
 	//delayMicroseconds(1);
 
 	gpio_put(GPIO_nCS, HIGH);
 
 	asm volatile(
-		"mov  r0, #17\n"    		// 1 cycle
-		"loop1: subs  r0, r0, #1\n"	// 1 cycle
-		"bne   loop1\n"          	// 2 cycles if loop taken, 1 if not
-	);
+		" nop\n nop\n nop\n nop\n"  // 4 cycle
+		" nop\n nop\n nop\n"  		// 3 cycle
+	); // 7 * 8 = 56ns
 }
 
 void write_vram(word addr, byte data) {
