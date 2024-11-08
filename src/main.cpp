@@ -133,6 +133,11 @@ uint8_t *prg_list[] = {
 	prg_5_rom,
 	prg_6_rom,
 	prg_7_rom,
+	prg_8_rom,
+	prg_9_rom,
+	prg_10_rom,
+	prg_11_rom,
+	prg_12_rom
 };
 
 uint8_t *chr_list[] = {
@@ -144,7 +149,14 @@ uint8_t *chr_list[] = {
 	chr_5_rom,
 	chr_6_rom,
 	chr_7_rom,
+	chr_8_rom,
+	chr_9_rom,
+	chr_10_rom,
+	chr_11_rom,
+	chr_12_rom,
 };
+
+bool autoloop = false;
 
 void loop()
 {
@@ -157,7 +169,7 @@ void loop()
 	memcpy(ntb_ram, prg_list[pg_ptr], 1920);
 
 	pg_ptr++;
-	if(pg_ptr >= 8) pg_ptr = 0;
+	if(pg_ptr >= 13) pg_ptr = 0;
 
 	for(int i = 0; i < 0x3000; i++) {
 		if(i < 0x2000) write_ppu(0x2007, chr_ram[(((i & 0xfff0) >> 1) | (i & 7)) & (2048 - 1)] ^ 0xff);
@@ -171,18 +183,30 @@ void loop()
 	write_ppu(0x2005, 0x00);
 	write_ppu(0x2001, 0x1e);
 
-	for(int i = 0; i < 60 * 2; i++) {
+	for(int i = 0; i < 60 * 7 && autoloop; i++) {
 		while(!vsync_flag) {
 			asm volatile(
 				" nop\n nop\n nop\n nop\n"  // 4 cycle
 				" nop\n nop\n nop\n"  		// 3 cycle
 			); // 7 * 8 = 56ns
+			if(get_bootsel_button()) {
+				autoloop = false;
+				break;
+			}
 		}
 		vsync_flag = false;
 	}
+	
+	int looptimer = millis();
 
-	//while(!get_bootsel_button()) delay(10);
-	//while(get_bootsel_button()) delay(10);
+	while(!get_bootsel_button() && !autoloop) {
+		delay(10);
+		if((millis() - looptimer) / 1000 > 120) autoloop = true;
+	}
+
+	while(get_bootsel_button() && !autoloop) {
+		delay(10);
+	}
 }
 
 void write_ppu(word addr, byte data)
